@@ -7,6 +7,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import axios from 'axios';
+import Pagination from './components/Pagination';
 
 // Define types for employee data
 type Employee = {
@@ -22,23 +23,25 @@ const columnHelper = createColumnHelper<Employee>();
 
 const EmployeeTable = () => {
   const [data, setData] = useState<Employee[]>([]);
-  const [pageIndex, setPageIndex] = useState(0);
+  const [pageIndex, setPageIndex] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [totalItems, setTotalItems] = useState(0);
   const [sorting, setSorting] = useState([]);
   const [search, setSearch] = useState('');
 
   // Fetch data from API with sorting, pagination, and search filters
   const fetchData = async () => {
-    const response = await axios.get('https://4567-idx-keyhook-test-1730175332904.cluster-bec2e4635ng44w7ed22sa22hes.cloudworkstations.dev/api/v1/employees?page[number]=1&page[size]=50', {
-      params: { 'page[number]': pageIndex, 'page[size]': pageSize, sort: sorting, search },
+    const response = await axios.get(`https://4567-idx-keyhook-test-1730175332904.cluster-bec2e4635ng44w7ed22sa22hes.cloudworkstations.dev/api/v1/employees?`, {
+      params: { 'page[number]': pageIndex, 'page[size]': pageSize, 'filter[name]': search },
     });
     setData(response.data.data.data);
-    console.log(response.data.data.data.length);
+    setPageIndex(response.data.meta.current_page);
+    setTotalItems(response.data.meta.total_count);
   };
 
   useEffect(() => {
     fetchData();
-  }, [pageIndex, pageSize, sorting, search]);
+  }, [pageIndex, pageSize, search]);
 
   // Define table columns
   const columns = [
@@ -83,6 +86,11 @@ const EmployeeTable = () => {
     manualSorting: true,
   });
 
+  const handlePageChange = (pageIndex: number, pageSize: number) => {
+    setPageIndex(pageIndex);
+    setPageSize(pageSize);
+  };
+
   return (
     <div className="table-container">
       <input
@@ -116,14 +124,7 @@ const EmployeeTable = () => {
           ))}
         </tbody>
       </table>
-      <div className="pagination">
-        <button onClick={() => setPageIndex(pageIndex - 1)} disabled={pageIndex === 0}>
-          Previous
-        </button>
-        <button onClick={() => setPageIndex(pageIndex + 1)} disabled={data.length < pageSize}>
-          Next
-        </button>
-      </div>
+      <Pagination totalItems={totalItems} onPageChange={handlePageChange} pageIndex={pageIndex} pageSize={pageSize}/>
     </div>
   );
 };

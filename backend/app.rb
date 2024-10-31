@@ -41,7 +41,17 @@ class EmployeeResource < ApplicationResource
   # Custom filter to search by first or last name
   filter :name, :string do
     eq do |scope, value|
-      scope.where("first_name ILIKE ? OR last_name ILIKE ?", "%#{value}%", "%#{value}%")
+      # If value is an array, join it into a single string with OR conditions
+      if value.is_a?(Array)
+        # Use lower and like for each value and combine them
+        value.map!(&:downcase) # Downcase each value
+        query = value.map { "LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?" }.join(' OR ')
+        conditions = value.flat_map { |v| ["%#{v}%", "%#{v}%"] }
+        scope.where(query, *conditions)
+      else
+        # Handle single string value
+        scope.where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?", "%#{value.downcase}%", "%#{value.downcase}%")
+      end
     end
   end
 
@@ -53,7 +63,7 @@ class EmployeeResource < ApplicationResource
 
    # Fetch employees based on the current page and per_page
    employees = all(params)
-   
+
    total_count = Employee.count # Count total number of employees
    total_pages = (total_count / per_page.to_f).ceil # Calculate total pages
    next_page = current_page < total_pages ? current_page + 1 : nil
