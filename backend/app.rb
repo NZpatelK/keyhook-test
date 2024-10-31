@@ -31,6 +31,7 @@ class EmployeeResource < ApplicationResource
   attribute :last_name, :string
   attribute :age, :integer
   attribute :position, :string
+  attribute :department_id, :integer
 
   # Enable pagination with Kaminari
   paginate do |scope, current_page, per_page|
@@ -44,7 +45,7 @@ class EmployeeResource < ApplicationResource
     end
   end
 
-  def self.all_with_pagination(params)
+  def self.employee_data_with_pagination(params)
    # Extract pagination parameters safely
    page_params = params[:page] || {}
    current_page = page_params["number"].to_i > 0 ? page_params["number"].to_i : 1 # Ensure current_page is at least 1
@@ -98,11 +99,11 @@ class EmployeeDirectoryApp < Sinatra::Application
     department.to_jsonapi
   end
 
-# Employee Endpoints
-get '/api/v1/employees' do
-  employees_with_meta = EmployeeResource.all_with_pagination(params)
-  employees_with_meta.to_json
-end
+  # Employee Endpoints
+  get '/api/v1/employees' do
+    employees_with_meta = EmployeeResource.employee_data_with_pagination(params)
+    employees_with_meta.to_json
+  end
 
 
   get '/api/v1/employees/:id' do
