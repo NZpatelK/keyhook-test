@@ -32,13 +32,13 @@ class EmployeeResource < ApplicationResource
   attribute :position, :string
   attribute :department_id, :integer
   
-   # Define belongs_to association with DepartmentResource
-   belongs_to :department
+  # Define belongs_to association with DepartmentResource
+  belongs_to :department
 
-   # Define a custom attribute for department_name
-   attribute :department_name, :string do
-     @object.department&.name # Safely fetch the department name
-   end
+  # Define a custom attribute for department_name
+  attribute :department_name, :string do
+    @object.department&.name # Safely fetch the department name
+  end
 
   # Enable pagination with Kaminari
   paginate do |scope, current_page, per_page|
@@ -62,6 +62,20 @@ class EmployeeResource < ApplicationResource
         scope.where(query, *conditions)
       else
         scope.where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?", "%#{value.downcase}%", "%#{value.downcase}%")
+      end
+    end
+  end
+
+  # Custom filter to search by department name
+  filter :department_name, :string do
+    eq do |scope, value|
+      if value.is_a?(Array)
+        value.map!(&:downcase)
+        query = value.map { "LOWER(departments.name) LIKE ?" }.join(' OR ')
+        conditions = value.map { |v| "%#{v}%" }
+        scope.joins(:department).where(query, *conditions)
+      else
+        scope.joins(:department).where("LOWER(departments.name) LIKE ?", "%#{value.downcase}%")
       end
     end
   end
@@ -92,6 +106,7 @@ class EmployeeResource < ApplicationResource
     }
   end
 end
+
 
 
 Graphiti.setup!
