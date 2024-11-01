@@ -22,7 +22,6 @@ class DepartmentResource < ApplicationResource
   attribute :name, :string
 end
 
-# employee_resource.rb
 class EmployeeResource < ApplicationResource
   self.model = Employee
   self.type = :employees
@@ -32,42 +31,55 @@ class EmployeeResource < ApplicationResource
   attribute :age, :integer
   attribute :position, :string
   attribute :department_id, :integer
+  
+   # Define belongs_to association with DepartmentResource
+   belongs_to :department
+
+   # Define a custom attribute for department_name
+   attribute :department_name, :string do
+     @object.department&.name # Safely fetch the department name
+   end
 
   # Enable pagination with Kaminari
   paginate do |scope, current_page, per_page|
     scope.page(current_page).per(per_page)
   end
 
+  # Define sortable attributes
+  [:first_name, :last_name, :age, :position].each do |attr|
+    sort attr, :string do |scope, direction|
+      scope.order(attr => direction) if direction.present?
+    end
+  end
+
   # Custom filter to search by first or last name
   filter :name, :string do
     eq do |scope, value|
-      # If value is an array, join it into a single string with OR conditions
       if value.is_a?(Array)
-        # Use lower and like for each value and combine them
-        value.map!(&:downcase) # Downcase each value
+        value.map!(&:downcase)
         query = value.map { "LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?" }.join(' OR ')
         conditions = value.flat_map { |v| ["%#{v}%", "%#{v}%"] }
         scope.where(query, *conditions)
       else
-        # Handle single string value
         scope.where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?", "%#{value.downcase}%", "%#{value.downcase}%")
       end
     end
   end
 
   def self.employee_data_with_pagination(params)
-   # Extract pagination parameters safely
-   page_params = params[:page] || {}
-   current_page = page_params["number"].to_i > 0 ? page_params["number"].to_i : 1 # Ensure current_page is at least 1
-   per_page = page_params["size"].to_i > 0 ? page_params["size"].to_i : 10 # Default per_page to 10
+    # Extract pagination parameters safely
+    page_params = params[:page] || {}
+    current_page = page_params["number"].to_i > 0 ? page_params["number"].to_i : 1
+    per_page = page_params["size"].to_i > 0 ? page_params["size"].to_i : 10
 
-   # Fetch employees based on the current page and per_page
-   employees = all(params)
+    # Fetch and apply pagination
+    employees = all(params)
 
-   total_count = Employee.count # Count total number of employees
-   total_pages = (total_count / per_page.to_f).ceil # Calculate total pages
-   next_page = current_page < total_pages ? current_page + 1 : nil
-   prev_page = current_page > 1 ? current_page - 1 : nil
+    total_count = Employee.count
+    total_pages = (total_count / per_page.to_f).ceil
+    next_page = current_page < total_pages ? current_page + 1 : nil
+    prev_page = current_page > 1 ? current_page - 1 : nil
+
     {
       data: employees,
       meta: {

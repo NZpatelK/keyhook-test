@@ -26,13 +26,25 @@ const EmployeeTable = () => {
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
-  const [sorting, setSorting] = useState([]);
+  const [sorting, setSorting] = useState<{ columnId: string; direction: string }[]>([
+    { columnId: 'first_name', direction: '' },
+    { columnId: 'last_name', direction: '' },
+    { columnId: 'age', direction: '' },
+    { columnId: 'position', direction: '' },
+  ]);
+
   const [search, setSearch] = useState('');
 
   // Fetch data from API with sorting, pagination, and search filters
   const fetchData = async () => {
+
+    const directionsString = sorting
+      .filter((item) => item.direction) 
+      .map((item) => item.direction) 
+      .join(', ');
+
     const response = await axios.get(`https://4567-idx-keyhook-test-1730175332904.cluster-bec2e4635ng44w7ed22sa22hes.cloudworkstations.dev/api/v1/employees?`, {
-      params: { 'page[number]': pageIndex, 'page[size]': pageSize, 'filter[name]': search },
+      params: { 'page[number]': pageIndex, 'page[size]': pageSize, 'filter[name]': search, sort: directionsString },
     });
     setData(response.data.data.data);
     setPageIndex(response.data.meta.current_page);
@@ -41,7 +53,7 @@ const EmployeeTable = () => {
 
   useEffect(() => {
     fetchData();
-  }, [pageIndex, pageSize, search]);
+  }, [pageIndex, pageSize, search, sorting]);
 
   // Define table columns
   const columns = [
@@ -73,13 +85,7 @@ const EmployeeTable = () => {
     pageCount: Math.ceil(data.length / pageSize),
     state: {
       pagination: { pageIndex, pageSize },
-      sorting,
     },
-    // onPaginationChange: ({ pageIndex, pageSize }) => {
-    //   setPageIndex(pageIndex);
-    //   setPageSize(pageSize);
-    // },
-    // onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
@@ -90,6 +96,29 @@ const EmployeeTable = () => {
     setPageIndex(pageIndex);
     setPageSize(pageSize);
   };
+
+  const handleSortingChange = (headerId: string) => {
+    console.log("click")
+
+    setSorting((prevSorting) => {
+      const currentSort = prevSorting.find((sort) => sort.columnId === headerId);
+
+      // Determine the new direction based on the current direction
+      const newDirection = currentSort?.direction === headerId
+        ? `-${headerId}` // Ascending to Descending
+        : currentSort?.direction === `-${headerId}`
+          ? ''              // Descending to Unsorted
+          : headerId;       // Unsorted to Ascending
+
+      // Map through sorting to apply the change for the clicked headerId
+      return prevSorting.map((sort) =>
+        sort.columnId === headerId
+          ? { ...sort, direction: newDirection }
+          : { ...sort, direction: '' } // Reset direction for other columns
+      );
+    });
+  };
+
 
   return (
     <div className="table-container">
@@ -105,7 +134,7 @@ const EmployeeTable = () => {
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id} className="px-4 py-2 border">
+                <th key={header.id} className="px-4 py-2 border" onClick={() => handleSortingChange(header.id)}>
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
@@ -124,7 +153,7 @@ const EmployeeTable = () => {
           ))}
         </tbody>
       </table>
-      <Pagination totalItems={totalItems} onPageChange={handlePageChange} pageIndex={pageIndex} pageSize={pageSize}/>
+      <Pagination totalItems={totalItems} onPageChange={handlePageChange} pageIndex={pageIndex} pageSize={pageSize} />
     </div>
   );
 };
