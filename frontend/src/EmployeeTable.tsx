@@ -8,6 +8,9 @@ import {
 } from '@tanstack/react-table';
 import axios from 'axios';
 import Pagination from './components/Pagination';
+import EmployeeFormModal from './components/EmployeeModalForm';
+import SearchBar from './components/SearchBar';
+import DepartmentSelect from './components/DepartmentSelect';
 
 // Define types for employee data
 type Employee = {
@@ -33,7 +36,7 @@ const EmployeeTable = () => {
     { columnId: 'position', direction: '' },
   ]);
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<String>('');
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
 
@@ -46,7 +49,7 @@ const EmployeeTable = () => {
       .join(', ');
 
     const response = await axios.get(`https://4567-idx-keyhook-test-1730175332904.cluster-bec2e4635ng44w7ed22sa22hes.cloudworkstations.dev/api/v1/employees`, {
-      params: { 'page[number]': pageIndex, 'page[size]': pageSize, 'filter[name]': search, sort: directionsString, 'filter[department_name]' : selectedOption ? selectedOption : '' },
+      params: { 'page[number]': pageIndex, 'page[size]': pageSize, 'filter[name]': search, sort: directionsString, 'filter[department_name]': selectedOption ? selectedOption : '' },
     });
     setData(response.data.data.data);
     setPageIndex(response.data.meta.current_page);
@@ -59,7 +62,7 @@ const EmployeeTable = () => {
 
   useEffect(() => {
     fetchData();
-  }, [pageIndex, pageSize, sorting, selectedOption]);
+  }, [pageIndex, pageSize, sorting, selectedOption, search]);
 
   // Define table columns
   const columns = [
@@ -104,8 +107,6 @@ const EmployeeTable = () => {
   };
 
   const handleSortingChange = (headerId: string) => {
-    console.log("click")
-
     setSorting((prevSorting) => {
       const currentSort = prevSorting.find((sort) => sort.columnId === headerId);
 
@@ -125,51 +126,24 @@ const EmployeeTable = () => {
     });
   };
 
-  const handleSearch = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.preventDefault()
-    fetchData()
+
+  const handleAddEmployee = () => {
+    //TODO: implement add employee
   }
 
 
   return (
     <div className="table-container">
-      <div className="flex justify-end items-center space-x-8 mr-4 mb-4">
-        <div className="flex">
-          <input
-            type="text"
-            placeholder="Search name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 p-2 rounded-l-md focus:outline-none"
-          />
-          <button
-            onClick={handleSearch}
-            className="p-2 bg-blue-500 text-white rounded-r-md"
-          >
-            Search
-          </button>
+      <div className="flex justify-between items-center my-8 px-4">
+
+        <div className="flex items-center space-x-8">
+          <SearchBar onSearch={search => { setSearch(search)}} />
+
+          <DepartmentSelect selectedOption={selectedOption || ''} setSelectedOption={function (value: string): void {
+            setSelectedOption(value === 'All' ? '' : value);
+          }} departmentOptions={departmentOptions} />
         </div>
-        
-        <div className="flex items-center">
-          <label htmlFor="department-select" className="mr-2">
-            Department Name:
-          </label>
-          <select
-            id="department-select"
-            className="border border-gray-300 p-2 rounded focus:outline-none"
-            value={selectedOption ? selectedOption : ''}
-            onChange={(e) => setSelectedOption(e.target.value === 'All' ? '' : e.target.value)}
-          >
-            <option value="" disabled selected>
-              Select Department
-            </option>
-            {departmentOptions.map((option, index) => (
-              <option key={index} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+        <EmployeeFormModal onAddEmployee={handleAddEmployee} />
       </div>
       <table className="min-w-full bg-white">
         <thead>

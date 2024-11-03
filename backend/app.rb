@@ -31,18 +31,13 @@ class EmployeeResource < ApplicationResource
   attribute :age, :integer
   attribute :position, :string
   attribute :department_id, :integer
-  
+
   # Define belongs_to association with DepartmentResource
   belongs_to :department
 
   # Define a custom attribute for department_name
   attribute :department_name, :string do
-    @object.department&.name # Safely fetch the department name
-  end
-
-  # Enable pagination with Kaminari
-  paginate do |scope, current_page, per_page|
-    scope.page(current_page).per(per_page)
+    @object.department&.name
   end
 
   # Define sortable attributes
@@ -55,28 +50,14 @@ class EmployeeResource < ApplicationResource
   # Custom filter to search by first or last name
   filter :name, :string do
     eq do |scope, value|
-      if value.is_a?(Array)
-        value.map!(&:downcase)
-        query = value.map { "LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?" }.join(' OR ')
-        conditions = value.flat_map { |v| ["%#{v}%", "%#{v}%"] }
-        scope.where(query, *conditions)
-      else
-        scope.where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?", "%#{value.downcase}%", "%#{value.downcase}%")
-      end
+      EmployeeFilterService.new(scope).filter_by_name(value)
     end
   end
 
   # Custom filter to search by department name
   filter :department_name, :string do
     eq do |scope, value|
-      if value.is_a?(Array)
-        value.map!(&:downcase)
-        query = value.map { "LOWER(departments.name) LIKE ?" }.join(' OR ')
-        conditions = value.map { |v| "%#{v}%" }
-        scope.joins(:department).where(query, *conditions)
-      else
-        scope.joins(:department).where("LOWER(departments.name) LIKE ?", "%#{value.downcase}%")
-      end
+      EmployeeFilterService.new(scope).filter_by_department_name(value)
     end
   end
 
@@ -84,18 +65,19 @@ class EmployeeResource < ApplicationResource
     # Extract pagination parameters safely
     page_params = params[:page] || {}
     current_page = page_params["number"].to_i > 0 ? page_params["number"].to_i : 1
-    per_page = page_params["size"].to_i > 0 ? page_params["size"].to_i : 10
+    per_page = page_params["size"].to_i > 0 ? page_params["size"].to_i : 20
 
-    # Fetch and apply pagination
-    employees = all(params)
+    # Fetch filtered employees 
+    filtered_scope = all(params)
 
+    # Calculate total count after filtering
     total_count = Employee.count
     total_pages = (total_count / per_page.to_f).ceil
     next_page = current_page < total_pages ? current_page + 1 : nil
     prev_page = current_page > 1 ? current_page - 1 : nil
 
     {
-      data: employees,
+      data: filtered_scope,
       meta: {
         total_count: total_count,
         total_pages: total_pages,
@@ -106,6 +88,35 @@ class EmployeeResource < ApplicationResource
     }
   end
 end
+
+class EmployeeFilterService
+  def initialize(scope)
+    @scope = scope
+  end
+
+  def filter_by_name(value)
+    if value.is_a?(Array)
+      value.map!(&:downcase)
+      query = value.map { "LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?" }.join(' OR ')
+      conditions = value.flat_map { |v| ["%#{v}%", "%#{v}%"] }
+      @scope.where(query, *conditions)
+    else
+      @scope.where("LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ?", "%#{value.downcase}%", "%#{value.downcase}%")
+    end
+  end
+
+  def filter_by_department_name(value)
+    if value.is_a?(Array)
+      value.map!(&:downcase)
+      query = value.map { "LOWER(departments.name) LIKE ?" }.join(' OR ')
+      conditions = value.map { |v| "%#{v}%" }
+      @scope.joins(:department).where(query, *conditions)
+    else
+      @scope.joins(:department).where("LOWER(departments.name) LIKE ?", "%#{value.downcase}%")
+    end
+  end
+end
+
 
 
 
