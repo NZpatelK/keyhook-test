@@ -1,26 +1,27 @@
-// EmployeeFormModal.tsx
 import React, { useState } from 'react';
-import { Modal, Box, TextField, Button, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
+import { Modal, Box, TextField, Button, MenuItem, Select, InputLabel, FormControl, SelectChangeEvent } from '@mui/material';
 
 interface Employee {
-  id: number;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
+  age: number; // Age should be a number
   position: string;
-  department: string;
+  department_name: string;
 }
 
 interface EmployeeFormModalProps {
   onAddEmployee: (employee: Employee) => void;
+  departmentOptions: string[];
 }
 
-const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee }) => {
+const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee, departmentOptions }) => {
   const [open, setOpen] = useState(false);
-  const [employee, setEmployee] = useState({
-    firstName: '',
-    lastName: '',
+  const [employee, setEmployee] = useState<Employee>({
+    first_name: '',
+    last_name: '',
+    age: 0, // Initialize age as a number
     position: '',
-    department: ''
+    department_name: ''
   });
 
   const handleOpen = () => setOpen(true);
@@ -28,18 +29,22 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee }) 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setEmployee((prev) => ({ ...prev, [name]: value }));
+    if (name === 'age') {
+      setEmployee((prev) => ({ ...prev, [name]: Number(value) })); // Convert age to a number
+    } else {
+      setEmployee((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<{ value: unknown }>) => {
-    setEmployee((prev) => ({ ...prev, department: e.target.value as string }));
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
+    setEmployee((prev) => ({ ...prev, department_name: e.target.value as string }));
   };
 
   const handleSubmit = () => {
-    if (employee.firstName && employee.lastName && employee.position && employee.department) {
-      const newEmployee = { id: Date.now(), ...employee };
+    if (employee.first_name && employee.last_name && employee.age > 0 && employee.position && employee.department_name) {
+      const newEmployee = employee;
       onAddEmployee(newEmployee);
-      setEmployee({ firstName: '', lastName: '', position: '', department: '' });
+      setEmployee({ first_name: '', last_name: '', age: 0, position: '', department_name: '' }); // Reset age to 0
       handleClose();
     }
   };
@@ -56,26 +61,38 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee }) 
           sx={{ width: 400, outline: 'none' }}
         >
           <h2 className="text-2xl font-semibold mb-6 text-center">Add New Employee</h2>
-          
+
           <div className="space-y-5">
             <TextField
               label="First Name"
-              name="firstName"
+              name="first_name"
               variant="outlined"
               fullWidth
               className="mb-4"
-              value={employee.firstName}
+              value={employee.first_name}
               onChange={handleChange}
             />
-            <TextField
-              label="Last Name"
-              name="lastName"
-              variant="outlined"
-              fullWidth
-              className="mb-4"
-              value={employee.lastName}
-              onChange={handleChange}
-            />
+            <div className="flex gap-2">
+              <TextField
+                label="Last Name"
+                name="last_name"
+                variant="outlined"
+                fullWidth
+                className="mb-4"
+                value={employee.last_name}
+                onChange={handleChange}
+              />
+              <TextField
+                label="Age"
+                name="age"
+                variant="outlined"
+                type="number"
+                inputProps={{ min: 0 }} // Set a minimum age of 0
+                className="mb-4"
+                value={employee.age}
+                onChange={handleChange}
+              />
+            </div>
             <TextField
               label="Position"
               name="position"
@@ -89,15 +106,15 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee }) 
               <InputLabel>Department</InputLabel>
               <Select
                 name="department"
-                value={employee.department}
-                // onChange={handleSelectChange}
+                value={employee.department_name}
+                onChange={handleSelectChange}
                 label="Department"
               >
-                <MenuItem value="Engineering">Engineering</MenuItem>
-                <MenuItem value="Marketing">Marketing</MenuItem>
-                <MenuItem value="Sales">Sales</MenuItem>
-                <MenuItem value="Human Resources">Human Resources</MenuItem>
-                <MenuItem value="Finance">Finance</MenuItem>
+                {departmentOptions.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </div>

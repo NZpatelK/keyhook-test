@@ -11,6 +11,7 @@ import Pagination from './components/Pagination';
 import EmployeeFormModal from './components/EmployeeModalForm';
 import SearchBar from './components/SearchBar';
 import DepartmentSelect from './components/DepartmentSelect';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Define types for employee data
 type Employee = {
@@ -48,16 +49,16 @@ const EmployeeTable = () => {
       .map((item) => item.direction)
       .join(', ');
 
-    const response = await axios.get(`https://4567-idx-keyhook-test-1730175332904.cluster-bec2e4635ng44w7ed22sa22hes.cloudworkstations.dev/api/v1/employees`, {
+    const response = await axios.get(`https://localhost:4567/api/v1/employees`, {
       params: { 'page[number]': pageIndex, 'page[size]': pageSize, 'filter[name]': search, sort: directionsString, 'filter[department_name]': selectedOption ? selectedOption : '' },
     });
     setData(response.data.data.data);
     setPageIndex(response.data.meta.current_page);
     setTotalItems(response.data.meta.total_count);
 
-    const departmentResponse = await axios.get('https://4567-idx-keyhook-test-1730175332904.cluster-bec2e4635ng44w7ed22sa22hes.cloudworkstations.dev/api/v1/departments');
+    const departmentResponse = await axios.get('https://localhost:4567/api/v1/departments');
     const departmnetNames = departmentResponse.data.data.map((department: any) => department.attributes.name);
-    setDepartmentOptions(['All', ...departmnetNames]);
+    setDepartmentOptions(departmnetNames);
   };
 
   useEffect(() => {
@@ -127,23 +128,56 @@ const EmployeeTable = () => {
   };
 
 
-  const handleAddEmployee = () => {
-    //TODO: implement add employee
+  const handleAddEmployee = async (employee: any) => {
+    try {
+      const headers = {
+        'Content-Type': 'application/vnd.api+json', // Set the content type
+        'Authorization': 'Bearer YOUR_ACCESS_TOKEN', // Example for an authorization header (if needed)
+      };
+
+      const response = await axios.post('https://localhost:4567/api/v1/employees', {
+        data: {
+          type: "employees",
+          attributes: employee,
+        },
+      }, { headers });
+
+      // Handle successful response
+      console.log('Employee created:', response.data);
+      toast.success('Successful Add Employee', {style:{fontSize: '20px'}})
+      // Optionally reset the form or show success message
+    } catch (error: unknown) {
+      // Check if the error is an AxiosError
+      console.log(error)
+      if (axios.isAxiosError(error)) {
+        // Access properties specific to AxiosError
+        toast.error('Error creating employee', {style:{fontSize: '20px'}})
+        console.error('Error creating employee:', error.response?.data.errors);
+      } else {
+        // Handle unexpected errors
+        toast.error('Error creating employee', {style:{fontSize: '20px'}})
+        console.error('Error creating employee:', error);
+      }
+    }
   }
 
 
   return (
     <div className="table-container">
+      <Toaster
+        position="bottom-right"
+        reverseOrder={false}
+      />
       <div className="flex justify-between items-center my-8 px-4">
 
         <div className="flex items-center space-x-8">
-          <SearchBar onSearch={search => { setSearch(search)}} />
+          <SearchBar onSearch={search => { setSearch(search) }} />
 
           <DepartmentSelect selectedOption={selectedOption || ''} setSelectedOption={function (value: string): void {
             setSelectedOption(value === 'All' ? '' : value);
-          }} departmentOptions={departmentOptions} />
+          }} departmentOptions={['All', ...departmentOptions]} />
         </div>
-        <EmployeeFormModal onAddEmployee={handleAddEmployee} />
+        <EmployeeFormModal onAddEmployee={handleAddEmployee} departmentOptions={departmentOptions} />
       </div>
       <table className="min-w-full bg-white">
         <thead>

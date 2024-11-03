@@ -158,6 +158,44 @@ class EmployeeDirectoryApp < Sinatra::Application
     employee = EmployeeResource.find(params)
     employee.to_jsonapi
   end
-end
 
+  post '/api/v1/employees' do
+
+    # Parse the JSON body data
+    request_payload = JSON.parse(request.body.read, symbolize_names: true)
+  
+    # Extract the department name from the received data
+    department_name = request_payload.dig(:data, :attributes, :department_name)
+  
+    # Find the department ID based on the department name
+    department = Department.find_by(name: department_name)
+  
+    # Proceed only if department exists
+    if department
+      # Replace department name with department ID in the payload
+      request_payload[:data][:attributes][:department_id] = department.id
+      request_payload[:data][:attributes].delete(:department_name) # Remove the name to avoid conflicts
+  
+      # Build and save the employee resource
+      employee = EmployeeResource.build(request_payload)
+  
+      if employee.save
+        status 201
+        employee.to_jsonapi
+      else
+        status 422
+        { errors: employee.errors.full_messages }.to_json
+      end
+    else
+      status 422
+      { errors: ["Department not found"] }.to_json
+    end
+  rescue JSON::ParserError => e
+    status 400
+    { errors: ["Invalid JSON format"] }.to_json
+  rescue ActiveRecord::RecordInvalid => e
+    status 422
+    { errors: e.record.errors.full_messages }.to_json
+  end
+end
 

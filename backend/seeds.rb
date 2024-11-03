@@ -26,6 +26,18 @@ end
 
 class Employee < ApplicationRecord
   belongs_to :department
+
+   # Validation to ensure an employee with the same name doesn't exist in the same department
+   validates :first_name, :last_name, :department_id, presence: true
+   validate :unique_name_within_department
+ 
+   private
+ 
+   def unique_name_within_department
+     if Employee.exists?(first_name: first_name, last_name: last_name, department_id: department_id)
+       errors.add(:base, "An employee with the same name already exists in this department")
+     end
+   end
 end
 
 class Department < ApplicationRecord
