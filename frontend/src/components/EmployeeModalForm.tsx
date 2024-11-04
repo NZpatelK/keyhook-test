@@ -32,7 +32,10 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee, de
     if (name === 'age') {
       setEmployee((prev) => ({ ...prev, [name]: Number(value) })); // Convert age to a number
     } else {
-      setEmployee((prev) => ({ ...prev, [name]: value }));
+      setEmployee((prev) => ({
+        ...prev,
+        [name]: value.charAt(0).toUpperCase() + value.slice(1)
+      }));
     }
   };
 
@@ -89,7 +92,7 @@ const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({ onAddEmployee, de
                 type="number"
                 inputProps={{ min: 0 }} // Set a minimum age of 0
                 className="mb-4"
-                value={employee.age}
+                value={employee.age === 0 ? '' : employee.age}
                 onChange={handleChange}
               />
             </div>

@@ -12,6 +12,7 @@ import EmployeeFormModal from './components/EmployeeModalForm';
 import SearchBar from './components/SearchBar';
 import DepartmentSelect from './components/DepartmentSelect';
 import toast, { Toaster } from 'react-hot-toast';
+import ErrorModal from './components/ErrorModal';
 
 // Define types for employee data
 type Employee = {
@@ -30,6 +31,11 @@ const EmployeeTable = () => {
   const [pageIndex, setPageIndex] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalItems, setTotalItems] = useState(0);
+  const [search, setSearch] = useState<String>('');
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  const [errorModalOpen, setErrorModalOpen] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [sorting, setSorting] = useState<{ columnId: string; direction: string }[]>([
     { columnId: 'first_name', direction: '' },
     { columnId: 'last_name', direction: '' },
@@ -37,9 +43,6 @@ const EmployeeTable = () => {
     { columnId: 'position', direction: '' },
   ]);
 
-  const [search, setSearch] = useState<String>('');
-  const [departmentOptions, setDepartmentOptions] = useState<string[]>([])
-  const [selectedOption, setSelectedOption] = useState<string | null>(null)
 
   // Fetch data from API with sorting, pagination, and search filters
   const fetchData = async () => {
@@ -127,6 +130,12 @@ const EmployeeTable = () => {
     });
   };
 
+  const handleErrorClose = () => {
+    setErrorModalOpen(false);
+    setErrorMessage('');
+  };
+
+
 
   const handleAddEmployee = async (employee: any) => {
     try {
@@ -144,23 +153,22 @@ const EmployeeTable = () => {
 
       // Handle successful response
       console.log('Employee created:', response.data);
-      toast.success('Successful Add Employee', {style:{fontSize: '20px'}})
+      toast.success('Successful Add Employee')
       // Optionally reset the form or show success message
-    } catch (error: unknown) {
-      // Check if the error is an AxiosError
+    } catch (error: any) {
       console.log(error)
       if (axios.isAxiosError(error)) {
-        // Access properties specific to AxiosError
-        toast.error('Error creating employee', {style:{fontSize: '20px'}})
-        console.error('Error creating employee:', error.response?.data.errors);
+        toast.error('Error creating employee')
+        setErrorMessage(error.response?.data.errors);
+        setErrorModalOpen(true);
       } else {
         // Handle unexpected errors
-        toast.error('Error creating employee', {style:{fontSize: '20px'}})
-        console.error('Error creating employee:', error);
+        toast.error('Error creating employee')
+        setErrorMessage(error);
+        setErrorModalOpen(true);
       }
     }
   }
-
 
   return (
     <div className="table-container">
@@ -168,6 +176,7 @@ const EmployeeTable = () => {
         position="bottom-right"
         reverseOrder={false}
       />
+      <ErrorModal open={errorModalOpen} handleClose={handleErrorClose} message={errorMessage}/>
       <div className="flex justify-between items-center my-8 px-4">
 
         <div className="flex items-center space-x-8">

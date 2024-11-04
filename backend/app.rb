@@ -159,8 +159,57 @@ class EmployeeDirectoryApp < Sinatra::Application
     employee.to_jsonapi
   end
 
-  post '/api/v1/employees' do
+  # post '/api/v1/employees' do
+  #   # Parse the JSON body data
+  #   request_payload = JSON.parse(request.body.read, symbolize_names: true)
+  
+  #   # Extract the department name from the received data
+  #   department_name = request_payload.dig(:data, :attributes, :department_name)
+  
+  #   # Find the department ID based on the department name
+  #   department = Department.find_by(name: department_name)
+  
+  #   # Proceed only if department exists
+  #   if department
+  #     # Replace department name with department ID in the payload
+  #     request_payload[:data][:attributes][:department_id] = department.id
+  #     request_payload[:data][:attributes].delete(:department_name) # Remove the name to avoid conflicts
+  
+  #     # Extract employee attributes from the payload
+  #     first_name = request_payload.dig(:data, :attributes, :first_name)
+  #     last_name = request_payload.dig(:data, :attributes, :last_name)
+  
+  #     # Check for duplicate employee in the same department
+  #     existing_employee = Employee.find_by(first_name: first_name, last_name: last_name, department_id: department.id)
+  
+  #     if existing_employee
+  #       status 400 # Bad Request
+  #       return { errors: ["An employee with the name #{first_name} #{last_name} already exists in the #{department_name} department."] }.to_json
+  #     end
+  
+  #     # Build and save the employee resource
+  #     employee = EmployeeResource.build(request_payload)
+  
+  #     if employee.save
+  #       status 201
+  #       employee.to_jsonapi
+  #     else
+  #       status 422
+  #       { errors: employee.errors.full_messages }.to_json
+  #     end
+  #   else
+  #     status 422
+  #     { errors: ["Failed to Add Employee. Please try again later or contact Technical service"] }.to_json
+  #   end
+  # rescue JSON::ParserError => e
+  #   status 400
+  #   { errors: ["Failed to Add Employee. Please try again later or contact Technical service"] }.to_json
+  # rescue ActiveRecord::RecordInvalid => e
+  #   status 422
+  #   { errors: e.record.errors.full_messages }.to_json
+  # end
 
+  post '/api/v1/employees' do
     # Parse the JSON body data
     request_payload = JSON.parse(request.body.read, symbolize_names: true)
   
@@ -170,11 +219,24 @@ class EmployeeDirectoryApp < Sinatra::Application
     # Find the department ID based on the department name
     department = Department.find_by(name: department_name)
   
-    # Proceed only if department exists
+    # Proceed only if the department exists
     if department
       # Replace department name with department ID in the payload
       request_payload[:data][:attributes][:department_id] = department.id
       request_payload[:data][:attributes].delete(:department_name) # Remove the name to avoid conflicts
+  
+      # Extract employee attributes from the payload
+      first_name = request_payload.dig(:data, :attributes, :first_name)
+      last_name = request_payload.dig(:data, :attributes, :last_name)
+  
+      # Check for duplicate employee in the same department (case insensitive)
+      existing_employee = Employee.where(department_id: department.id)
+        .find { |emp| emp.first_name.downcase == first_name.downcase && emp.last_name.downcase == last_name.downcase }
+  
+      if existing_employee
+        status 400 # Bad Request
+        return { errors: ["An employee with the name #{first_name} #{last_name} already exists in the #{department_name} department."] }.to_json
+      end
   
       # Build and save the employee resource
       employee = EmployeeResource.build(request_payload)
@@ -188,14 +250,16 @@ class EmployeeDirectoryApp < Sinatra::Application
       end
     else
       status 422
-      { errors: ["Department not found"] }.to_json
+      { errors: ["Failed to Add Employee. Please try again later or contact Technical service"] }.to_json
     end
   rescue JSON::ParserError => e
     status 400
-    { errors: ["Invalid JSON format"] }.to_json
+    { errors: ["Failed to Add Employee. Please try again later or contact Technical service"] }.to_json
   rescue ActiveRecord::RecordInvalid => e
     status 422
     { errors: e.record.errors.full_messages }.to_json
   end
+  
+  
 end
 
