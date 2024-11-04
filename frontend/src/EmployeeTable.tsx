@@ -13,6 +13,10 @@ import SearchBar from './components/SearchBar';
 import DepartmentSelect from './components/DepartmentSelect';
 import toast, { Toaster } from 'react-hot-toast';
 import ErrorModal from './components/ErrorModal';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+
 
 // Define types for employee data
 type Employee = {
@@ -130,6 +134,15 @@ const EmployeeTable = () => {
     });
   };
 
+  const getSortingIcon = (headerId: any) => {
+    const currentSort = sorting.find((sort) => sort.columnId === headerId);
+
+    if (currentSort?.direction === headerId) return <ArrowUpwardIcon fontSize="small" />;
+    if (currentSort?.direction === `-${headerId}`) return <ArrowDownwardIcon fontSize="small" />;
+    return <UnfoldMoreIcon fontSize="small" />;
+  };
+
+
   const handleErrorClose = () => {
     setErrorModalOpen(false);
     setErrorMessage('');
@@ -173,10 +186,10 @@ const EmployeeTable = () => {
   return (
     <div className="table-container">
       <Toaster
-        position="bottom-right"
+        position="top-center"
         reverseOrder={false}
       />
-      <ErrorModal open={errorModalOpen} handleClose={handleErrorClose} message={errorMessage}/>
+      <ErrorModal open={errorModalOpen} handleClose={handleErrorClose} message={errorMessage} />
       <div className="flex justify-between items-center my-8 px-4">
 
         <div className="flex items-center space-x-8">
@@ -193,8 +206,17 @@ const EmployeeTable = () => {
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id} className="px-4 py-2 border" onClick={() => handleSortingChange(header.id)}>
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                <th
+                  key={header.id}
+                  className="px-4 py-2 border cursor-pointer"
+                  onClick={() => handleSortingChange(header.id)}
+                >
+                  {header.isPlaceholder ? null : (
+                    <>
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      <span className="ml-2">{getSortingIcon(header.id)}</span>
+                    </>
+                  )}
                 </th>
               ))}
             </tr>
