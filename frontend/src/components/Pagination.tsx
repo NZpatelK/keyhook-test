@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface PaginationProps {
   totalItems: number;
@@ -7,36 +7,50 @@ interface PaginationProps {
   pageIndex?: number;
 }
 
-const Pagination: React.FC<PaginationProps> = ({ totalItems, onPageChange, pageSize = 20, pageIndex = 1 }) => {
-//   const [pageIndex, setPageIndex] = useState<number>(1);
-//   const [pageSize, setPageSize] = useState<number>(20);
-  const [pageGroup, setPageGroup] = useState<number>(0); // Tracks groups of 10 pages
+const Pagination: React.FC<PaginationProps> = ({
+  totalItems,
+  onPageChange,
+  pageSize = 20,
+  pageIndex = 1,
+}) => {
+  const [currentPage, setCurrentPage] = useState(pageIndex);
 
-  // Calculate the total pages based on the current page size
+  useEffect(() => {
+    setCurrentPage(pageIndex);
+  }, [pageIndex]);
+
   const totalPages = Math.ceil(totalItems / pageSize);
+  const visiblePages = 10; // Number of pages to display at once
 
-  // Handle page size change
-  const handlePageSizeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newSize = Number(event.target.value);
-    // setPageSize(newSize);
-    // setPageIndex(1); // Reset to the first page
-    setPageGroup(0); // Reset to the first page group
-    onPageChange(1, newSize); // Call the onPageChange callback with the new page index and page size
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    onPageChange(page, pageSize);
   };
 
-  // Render page numbers for the current group (e.g., 1-10, 11-20, etc.)
-  const renderPageNumbers = () => {
-    const startPage = pageGroup * 10 + 1;
-    const endPage = Math.min(startPage + 9, totalPages);
-    const pageNumbers = [];
+  const handlePageSizeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newSize = Number(event.target.value);
+    setCurrentPage(1); // Reset to the first page
+    onPageChange(1, newSize);
+  };
 
+  // Calculate the page range to display based on the current page
+  const renderPageNumbers = () => {
+    let startPage = Math.max(1, currentPage - Math.floor(visiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + visiblePages - 1);
+
+    // Adjust if we're at the end of the page range
+    if (endPage - startPage < visiblePages - 1) {
+      startPage = Math.max(1, endPage - visiblePages + 1);
+    }
+
+    const pageNumbers = [];
     for (let i = startPage; i <= endPage; i++) {
       pageNumbers.push(
         <button
           key={i}
-          onClick={() => onPageChange(i, pageSize)}
+          onClick={() => handlePageChange(i)}
           className={`px-3 py-1 rounded-lg mx-1 ${
-            i === pageIndex ? "bg-blue-500 text-white" : "bg-gray-200"
+            i === currentPage ? "bg-blue-500 text-white" : "bg-gray-200"
           }`}
         >
           {i}
@@ -46,53 +60,44 @@ const Pagination: React.FC<PaginationProps> = ({ totalItems, onPageChange, pageS
     return pageNumbers;
   };
 
-  // Handle previous and next group of pages
-  const handlePreviousGroup = () => {
-    if (pageGroup > 0) setPageGroup(pageGroup - 1);
-  };
-
-  const handleNextGroup = () => {
-    if ((pageGroup + 1) * 10 < totalPages) setPageGroup(pageGroup + 1);
-  };
-
   return (
     <div className="relative w-full mt-6 flex items-center mb-[100px]">
       {/* Centered Pagination Controls */}
       <div className="flex items-center justify-center space-x-2 w-full">
+        {/* Start Button */}
         <button
-          onClick={() => (onPageChange(pageIndex - 1, pageSize))}
-          disabled={pageIndex === 1}
+          onClick={() => handlePageChange(1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1 bg-gray-200 rounded-lg disabled:opacity-50"
+        >
+          Start
+        </button>
+
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
           className="px-3 py-1 bg-gray-200 rounded-lg disabled:opacity-50"
         >
           Previous
         </button>
 
-        <button
-          onClick={handlePreviousGroup}
-          disabled={pageGroup === 0}
-          className="px-3 py-1 bg-gray-200 rounded-lg disabled:opacity-50"
-        >
-          &laquo;
-        </button>
-
         {renderPageNumbers()}
 
         <button
-          onClick={handleNextGroup}
-          disabled={(pageGroup + 1) * 10 >= totalPages}
-          className="px-3 py-1 bg-gray-200 rounded-lg disabled:opacity-50"
-        >
-          &raquo;
-        </button>
-
-        <button
-          onClick={() => {
-            onPageChange(pageIndex + 1, pageSize);
-          }}
-          disabled={pageIndex === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
           className="px-3 py-1 bg-gray-200 rounded-lg disabled:opacity-50"
         >
           Next
+        </button>
+
+        {/* End Button */}
+        <button
+          onClick={() => handlePageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="px-3 py-1 bg-gray-200 rounded-lg disabled:opacity-50"
+        >
+          End
         </button>
       </div>
 
