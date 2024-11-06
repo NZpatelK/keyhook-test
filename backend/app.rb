@@ -117,9 +117,6 @@ class EmployeeFilterService
   end
 end
 
-
-
-
 Graphiti.setup!
 
 # main application file
@@ -148,9 +145,14 @@ class EmployeeDirectoryApp < Sinatra::Application
   end
 
   # Employee Endpoints
+  # get '/api/v1/employees' do
+  #   employees_with_meta = EmployeeResource.employee_data_with_pagination(params)
+  #   employees_with_meta.to_json
+  # end
+
   get '/api/v1/employees' do
-    employees_with_meta = EmployeeResource.employee_data_with_pagination(params)
-    employees_with_meta.to_json
+    employees = EmployeeResource.all(params)
+    employees.to_jsonapi
   end
 
 
